@@ -59,6 +59,15 @@ require('./index').sendDailyReadingsEmail();
 - The scheduler uses [`node-cron`](https://www.npmjs.com/package/node-cron) and keeps running on platforms like Render, Fly.io, or Railway.
 - The SQLite database file (`subscribers.db`) is created at the project root. Ensure the deployment environment persists this file, or swap in a managed database.
 - If the OpenAI API key is missing, the service gracefully falls back to a generic reflection and question.
+- If you host the landing page separately from the Node.js service (for example on GitHub Pages), set `window.MASS_READINGS_SUBSCRIBE_ENDPOINT` in a small inline script on that page so the form posts to your API origin instead of the static host. Example:
+
+  ```html
+  <script>
+    window.MASS_READINGS_SUBSCRIBE_ENDPOINT = 'https://your-service-domain/subscribe';
+  </script>
+  ```
+
+  The in-page script automatically prefers this value before falling back to the form action.
 
 ### Logging
 
