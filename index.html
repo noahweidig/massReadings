@@ -232,7 +232,7 @@
           </h2>
           <p class="promise">No apps. No account. Just enter your email and we will take care of the rest.</p>
         </div>
-        <form method="POST" action="/subscribe">
+        <form id="subscription-form" method="POST" action="/subscribe" data-endpoint="">
           <label for="email">Email Address</label>
           <input
             id="email"
@@ -244,8 +244,67 @@
           />
           <button type="submit">Send me the readings</button>
         </form>
+        <p class="promise" id="form-status" role="status" aria-live="polite"></p>
         <p class="promise">We respect your privacy. Your address is only used for the daily readings email.</p>
       </section>
     </main>
+    <script>
+      const form = document.getElementById('subscription-form');
+      if (form) {
+        const statusEl = document.getElementById('form-status');
+        const defaultSuccessMessage =
+          "Thanks for subscribing! You'll receive the next set of readings tomorrow morning.";
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          const formData = new FormData(form);
+          const email = String(formData.get('email') || '').trim();
+
+          if (!email) {
+            statusEl.textContent = 'Please enter a valid email address.';
+            return;
+          }
+
+          const submitButton = form.querySelector('button[type="submit"]');
+          submitButton.disabled = true;
+          statusEl.textContent = 'Submitting your subscription…';
+
+          const formAction = form.dataset.endpoint?.trim() || form.getAttribute('action') || '/subscribe';
+          let endpoint;
+          try {
+            endpoint = new URL(formAction, window.location.origin).toString();
+          } catch (_error) {
+            statusEl.textContent = 'Unable to determine the subscription endpoint.';
+            submitButton.disabled = false;
+            return;
+          }
+
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({ email }).toString(),
+              mode: endpoint.startsWith(window.location.origin) ? 'same-origin' : 'cors',
+            });
+
+            if (response.ok) {
+              statusEl.textContent = (await response.text()) || defaultSuccessMessage;
+              form.reset();
+            } else if (response.status === 409) {
+              statusEl.textContent = 'It looks like you are already subscribed.';
+            } else {
+              const message = await response.text();
+              statusEl.textContent = message || 'We were unable to add you right now. Please try again later.';
+            }
+          } catch (error) {
+            console.error('Subscription failed', error);
+            statusEl.textContent = 'Network error while subscribing. Please check your connection and try again.';
+          } finally {
+            submitButton.disabled = false;
+          }
+        });
+      }
+    </script>
   </body>
 </html>
