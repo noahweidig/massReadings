@@ -255,6 +255,11 @@
         const defaultSuccessMessage =
           "Thanks for subscribing! You'll receive the next set of readings tomorrow morning.";
 
+        const globalEndpoint =
+          typeof window !== 'undefined' && window.MASS_READINGS_SUBSCRIBE_ENDPOINT
+            ? String(window.MASS_READINGS_SUBSCRIBE_ENDPOINT).trim()
+            : '';
+
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
 
@@ -270,7 +275,8 @@
           submitButton.disabled = true;
           statusEl.textContent = 'Submitting your subscription…';
 
-          const formAction = form.dataset.endpoint?.trim() || form.getAttribute('action') || '/subscribe';
+          const formAction =
+            globalEndpoint || form.dataset.endpoint?.trim() || form.getAttribute('action') || '/subscribe';
           let endpoint;
           try {
             endpoint = new URL(formAction, window.location.origin).toString();
