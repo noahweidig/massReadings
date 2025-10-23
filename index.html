@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily Mass Readings Subscription</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8f5f1;
+        --accent: #3f72af;
+        --text: #273043;
+        --text-muted: #4a5568;
+        --card-bg: rgba(255, 255, 255, 0.92);
+        --card-border: rgba(63, 114, 175, 0.15);
+        --shadow: 0 30px 55px rgba(39, 48, 67, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: linear-gradient(135deg, rgba(240, 244, 255, 0.7), rgba(248, 245, 241, 0.95)), url('https://images.unsplash.com/photo-1487956382158-bb926046304a?auto=format&fit=crop&w=1600&q=80')
+          center/cover no-repeat fixed;
+        padding: clamp(1.5rem, 3vw + 1rem, 4rem);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      main {
+        width: min(960px, 100%);
+        backdrop-filter: blur(10px);
+        background: var(--card-bg);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--card-border);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+
+      .intro {
+        padding: clamp(2rem, 5vw, 3.5rem);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        justify-content: center;
+      }
+
+      .intro h1 {
+        font-family: "EB Garamond", "Times New Roman", serif;
+        font-size: clamp(2.1rem, 2.6vw + 1.5rem, 3rem);
+        margin: 0;
+        letter-spacing: 0.02em;
+      }
+
+      .intro p {
+        margin: 0;
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: var(--text-muted);
+      }
+
+      .features {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .feature {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        color: var(--text-muted);
+      }
+
+      .feature span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(63, 114, 175, 0.15);
+        color: var(--accent);
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+
+      .form-card {
+        background: rgba(255, 255, 255, 0.86);
+        padding: clamp(2rem, 5vw, 3.5rem);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        justify-content: center;
+        border-left: 1px solid var(--card-border);
+      }
+
+      form {
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+
+      input[type="email"] {
+        width: 100%;
+        padding: 0.95rem 1.15rem;
+        border-radius: 999px;
+        border: 1px solid rgba(63, 114, 175, 0.25);
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      input[type="email"]:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(63, 114, 175, 0.25);
+      }
+
+      button[type="submit"] {
+        border: none;
+        border-radius: 999px;
+        padding: 0.95rem 1.2rem;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+
+      button[type="submit"]:hover,
+      button[type="submit"]:focus-visible {
+        transform: translateY(-1px);
+        background: #325f92;
+        box-shadow: 0 16px 30px rgba(63, 114, 175, 0.4);
+      }
+
+      .promise {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      .testimonial {
+        border-left: 3px solid rgba(63, 114, 175, 0.35);
+        padding-left: 1rem;
+        font-style: italic;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
+      .signature {
+        font-family: "EB Garamond", "Times New Roman", serif;
+        color: var(--accent);
+        font-size: 1.1rem;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          border-radius: 22px;
+        }
+
+        .form-card {
+          border-left: none;
+          border-top: 1px solid var(--card-border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="intro">
+        <h1>Receive the Daily Mass Readings</h1>
+        <p>
+          A beautifully formatted email with the day's readings, a short reflection, and a thoughtful question for prayer —
+          delivered every morning at dawn.
+        </p>
+        <div class="features">
+          <div class="feature">
+            <span>1</span>
+            <div>
+              <strong>Scripture First.</strong>
+              We gather the official Mass texts from the USCCB each day and format them for easy reading on any device.
+            </div>
+          </div>
+          <div class="feature">
+            <span>2</span>
+            <div>
+              <strong>Prayerful Reflection.</strong>
+              When available, we include a gentle meditation and a question to guide your conversation with the Lord.
+            </div>
+          </div>
+          <div class="feature">
+            <span>3</span>
+            <div>
+              <strong>No clutter.</strong>
+              Just the essentials for your time with God — and you can unsubscribe anytime with one click.
+            </div>
+          </div>
+        </div>
+        <blockquote class="testimonial">
+          “A quiet moment with the Gospel before the day begins has transformed my commute.”
+          <div class="signature">— A fellow parishioner</div>
+        </blockquote>
+      </section>
+      <section class="form-card">
+        <div>
+          <h2 style="margin: 0 0 0.75rem; font-family: 'EB Garamond', 'Times New Roman', serif; font-size: 2rem;">
+            Subscribe for tomorrow morning
+          </h2>
+          <p class="promise">No apps. No account. Just enter your email and we will take care of the rest.</p>
+        </div>
+        <form method="POST" action="/subscribe">
+          <label for="email">Email Address</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+          />
+          <button type="submit">Send me the readings</button>
+        </form>
+        <p class="promise">We respect your privacy. Your address is only used for the daily readings email.</p>
+      </section>
+    </main>
+  </body>
+</html>
