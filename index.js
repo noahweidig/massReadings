@@ -23,6 +23,34 @@ if (!process.env.OPENAI_API_KEY) {
 }
 
 const app = express();
+
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.length === 0) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else if (allowedOrigins.includes('*')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
+  res.header('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
+
 app.use(express.urlencoded({ extended: true }));
 
 let db;
@@ -88,7 +116,7 @@ app.post('/subscribe', (req, res) => {
       }
 
       if (this.changes === 0) {
-        return res.status(200).send('You are already subscribed!');
+        return res.status(409).send('You are already subscribed!');
       }
 
       console.log(`New subscriber: ${email}`);
