@@ -249,16 +249,129 @@
       </section>
     </main>
     <script>
-      const form = document.getElementById('subscription-form');
-      if (form) {
+      (function () {
+        const form = document.getElementById('subscription-form');
+        if (!form) return;
+
         const statusEl = document.getElementById('form-status');
+        const submitButton = form.querySelector('button[type="submit"]');
         const defaultSuccessMessage =
           "Thanks for subscribing! You'll receive the next set of readings tomorrow morning.";
+        const LOCAL_FALLBACK_ENDPOINT = 'http://localhost:3000/subscribe';
+        const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '::1'];
 
-        const globalEndpoint =
-          typeof window !== 'undefined' && window.MASS_READINGS_SUBSCRIBE_ENDPOINT
-            ? String(window.MASS_READINGS_SUBSCRIBE_ENDPOINT).trim()
-            : '';
+        function dedupe(values) {
+          const seen = new Set();
+          const result = [];
+          for (const value of values) {
+            const trimmed = typeof value === 'string' ? value.trim() : '';
+            if (!trimmed || seen.has(trimmed)) continue;
+            seen.add(trimmed);
+            result.push(trimmed);
+          }
+          return result;
+        }
+
+        function collectEndpointCandidates() {
+          const candidates = [];
+
+          if (typeof window !== 'undefined' && window.MASS_READINGS_SUBSCRIBE_ENDPOINT) {
+            const globalValue = String(window.MASS_READINGS_SUBSCRIBE_ENDPOINT).trim();
+            if (globalValue) candidates.push(globalValue);
+          }
+
+          if (form.dataset && typeof form.dataset.endpoint === 'string') {
+            const datasetValue = form.dataset.endpoint.trim();
+            if (datasetValue) candidates.push(datasetValue);
+          }
+
+          const actionAttribute = form.getAttribute('action');
+          if (actionAttribute && actionAttribute.trim()) {
+            candidates.push(actionAttribute.trim());
+          }
+
+          candidates.push('/subscribe');
+
+          const host = window.location.hostname || '';
+          const port = window.location.port || '';
+          const protocol = window.location.protocol || '';
+          const origin = window.location.origin || '';
+
+          if (protocol === 'file:' || origin === 'null') {
+            candidates.push(LOCAL_FALLBACK_ENDPOINT);
+          } else if (LOCAL_HOSTNAMES.includes(host) && port && port !== '3000') {
+            candidates.push(LOCAL_FALLBACK_ENDPOINT);
+          }
+
+          return dedupe(candidates);
+        }
+
+        function resolveEndpoints() {
+          const base =
+            window.location.origin && window.location.origin !== 'null'
+              ? window.location.origin
+              : window.location.href;
+
+          const resolved = [];
+          for (const candidate of collectEndpointCandidates()) {
+            try {
+              resolved.push(new URL(candidate, base).toString());
+            } catch (_error) {
+              if (/^https?:\/\//i.test(candidate)) {
+                resolved.push(candidate);
+              }
+            }
+          }
+
+          return dedupe(resolved);
+        }
+
+        function isSameOrigin(url) {
+          try {
+            const target = new URL(url);
+            if (!window.location.origin || window.location.origin === 'null') {
+              return false;
+            }
+            return target.origin === window.location.origin;
+          } catch (_error) {
+            return false;
+          }
+        }
+
+        async function submitToEndpoints(endpoints, body) {
+          let lastFailure = null;
+
+          for (const endpoint of endpoints) {
+            try {
+              const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body,
+                mode: isSameOrigin(endpoint) ? 'same-origin' : 'cors',
+              });
+
+              if (response.ok) {
+                return { type: 'success', endpoint, message: await response.text() };
+              }
+
+              if (response.status === 409) {
+                return { type: 'exists', endpoint };
+              }
+
+              lastFailure = {
+                type: 'http',
+                endpoint,
+                status: response.status,
+                message: await response.text(),
+              };
+            } catch (error) {
+              console.error('Subscription request failed', error);
+              lastFailure = { type: 'network', endpoint, error };
+            }
+          }
+
+          return lastFailure || { type: 'unknown' };
+        }
 
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
@@ -271,46 +384,43 @@
             return;
           }
 
-          const submitButton = form.querySelector('button[type="submit"]');
-          submitButton.disabled = true;
+          if (submitButton) {
+            submitButton.disabled = true;
+          }
           statusEl.textContent = 'Submitting your subscription…';
 
-          const formAction =
-            globalEndpoint || form.dataset.endpoint?.trim() || form.getAttribute('action') || '/subscribe';
-          let endpoint;
-          try {
-            endpoint = new URL(formAction, window.location.origin).toString();
-          } catch (_error) {
+          const endpoints = resolveEndpoints();
+          if (!endpoints.length) {
             statusEl.textContent = 'Unable to determine the subscription endpoint.';
-            submitButton.disabled = false;
+            if (submitButton) {
+              submitButton.disabled = false;
+            }
             return;
           }
 
-          try {
-            const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: new URLSearchParams({ email }).toString(),
-              mode: endpoint.startsWith(window.location.origin) ? 'same-origin' : 'cors',
-            });
+          const body = new URLSearchParams({ email }).toString();
+          const result = await submitToEndpoints(endpoints, body);
 
-            if (response.ok) {
-              statusEl.textContent = (await response.text()) || defaultSuccessMessage;
-              form.reset();
-            } else if (response.status === 409) {
-              statusEl.textContent = 'It looks like you are already subscribed.';
-            } else {
-              const message = await response.text();
-              statusEl.textContent = message || 'We were unable to add you right now. Please try again later.';
-            }
-          } catch (error) {
-            console.error('Subscription failed', error);
-            statusEl.textContent = 'Network error while subscribing. Please check your connection and try again.';
-          } finally {
+          if (result.type === 'success') {
+            statusEl.textContent = result.message || defaultSuccessMessage;
+            form.reset();
+          } else if (result.type === 'exists') {
+            statusEl.textContent = 'It looks like you are already subscribed.';
+          } else if (result.type === 'http') {
+            statusEl.textContent =
+              result.message || `We were unable to add you right now (status ${result.status}). Please try again later.`;
+          } else if (result.type === 'network') {
+            statusEl.textContent =
+              'Network error while subscribing. Please make sure the subscription service is reachable and try again.';
+          } else {
+            statusEl.textContent = 'We were unable to add you right now. Please try again later.';
+          }
+
+          if (submitButton) {
             submitButton.disabled = false;
           }
         });
-      }
+      })();
     </script>
   </body>
 </html>
